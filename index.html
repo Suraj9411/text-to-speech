@@ -1,0 +1,242 @@
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice to Text and Translate</title>
+    <style>
+
+        * {
+            padding: 0;
+            margin: 0;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: black;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        #container {
+            background-color: #fff;
+            border: 2px blue solid;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            width: 80%; 
+            max-width: 600px; 
+        }
+
+        h1 {
+            margin-top: 0;
+        }
+
+        label {
+            margin-right: 10px;
+        }
+
+        select, input, button {
+            padding: 5px;
+            margin: 5px;
+            font-size: 16px;
+        }
+
+        #output {
+            margin-top: 20px;
+            text-align: left;
+        }
+
+        .responsive-box {
+            width: 100%;
+            overflow: hidden;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+
+        textarea {
+            width: 100%;
+            height: auto;
+            min-height: 100px;
+            padding: 10px;
+            resize: none;
+            border: none;
+            border-radius: 5px;
+            overflow: hidden; /* Hide scrollbars initially */
+        }
+
+        button {
+            background-color: #0011ff;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #05c5f5;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <h1>Voice to Text</h1>
+        <label for="languageSelect">Select Language:</label>
+        <select id="languageSelect">
+            <option value="en">English</option>
+            <option value="hi">Hindi</option>
+            <option value="bn">Bangla</option>
+            <option value="ml">Malayalam</option>
+            <option value="ur">Urdu</option>
+            <option value="gu">Gujarati</option>
+            <option value="ta">Tamil</option>
+            <option value="te">Telugu</option>
+            <option value="mr">Marathi</option>
+            <option value="or">Odia</option>
+            <option value="pa">Punjabi</option>
+            <option value="as">Assamese</option>
+            <option value="sa">Sanskrit</option>
+            <!-- Add more options for other languages if needed -->
+        </select>
+        <br>
+        <button id="startButton">Start Recording</button>
+        <button id="stopButton" style="display: none;">Stop Recording</button>
+        <button id="speakButton" style="display: none;">Speak Text</button>
+        <div id="output" class="responsive-box">
+            <textarea id="textAreaOutput" readonly></textarea>
+        </div>
+        <br>
+        <div>
+            <h1>Text To Voice</h1>
+            <input type="text" id="textToSpeechInput" placeholder="Enter text">
+            <button id="textToSpeechButton">Text to Speak</button>
+            <button id="resetButton">Reset</button>
+        </div>
+    </div>
+    
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const startButton = document.getElementById('startButton');
+            const stopButton = document.getElementById('stopButton');
+            const speakButton = document.getElementById('speakButton');
+            const textToSpeechInput = document.getElementById('textToSpeechInput');
+            const textToSpeechButton = document.getElementById('textToSpeechButton');
+            const resetButton = document.getElementById('resetButton');
+            const outputDiv = document.getElementById('output');
+            const languageSelect = document.getElementById('languageSelect');
+            let recognition;
+
+            startButton.addEventListener('click', startRecording);
+            stopButton.addEventListener('click', stopRecording);
+            speakButton.addEventListener('click', speakText);
+            textToSpeechButton.addEventListener('click', textToSpeech);
+            resetButton.addEventListener('click', resetText);
+
+            function startRecording() {
+                recognition = new webkitSpeechRecognition() || new SpeechRecognition();
+                recognition.lang = 'en-IN';
+
+                recognition.onresult = function (event) {
+                    const transcript = event.results[0][0].transcript;
+                    translateText(transcript, languageSelect.value);
+                    outputDiv.textContent = `Original Text: ${transcript}`;
+                };
+
+                recognition.onerror = function (event) {
+                    outputDiv.textContent = 'Error occurred: ' + event.error;
+                };
+
+                recognition.onend = function () {
+                    startButton.style.display = 'inline-block';
+                    stopButton.style.display = 'none';
+                    speakButton.style.display = 'inline-block';
+                };
+
+                recognition.start();
+                startButton.style.display = 'none';
+                stopButton.style.display = 'inline-block';
+                speakButton.style.display = 'none';
+            }
+
+            function stopRecording() {
+                if (recognition) {
+                    recognition.stop();
+                }
+            }
+
+            function translateText(text, targetLanguage) {
+                const apiKey = 'AIzaSyDlOuv4pStaemiEPIkY8q3gEer5TsHKaOc'; // Replace with your actual Google Translate API key
+                const apiUrl = `https://translation.googleapis.com/language/translate/v2?key=${apiKey}`;
+
+                const data = {
+                    q: text,
+                    target: targetLanguage,
+                };
+
+                fetch(apiUrl, {
+                    method: 'POST',
+                    body: JSON.stringify(data),
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    const translatedText = data.data.translations[0].translatedText;
+                    outputDiv.textContent += `\n\nTranslated Text: ${translatedText}`;
+                    speakButton.style.display = 'inline-block';
+                })
+                .catch(error => {
+                    console.error('Translation error:', error);
+                    outputDiv.textContent = 'Translation error occurred.';
+                });
+            }
+
+            function speakText() {
+                const textToSpeak = outputDiv.textContent;
+                const selectedLanguage = languageSelect.value;
+
+                // Set the language for text-to-speech
+                const synthesizer = new SpeechSynthesisUtterance();
+                synthesizer.text = textToSpeak;
+                synthesizer.lang = selectedLanguage;
+
+                // Speak the text
+                speechSynthesis.speak(synthesizer);
+            }
+
+            function textToSpeech() {
+                const textToSpeak = textToSpeechInput.value;
+                const selectedLanguage = languageSelect.value;
+
+                // Set the language for text-to-speech
+                const synthesizer = new SpeechSynthesisUtterance();
+                synthesizer.text = textToSpeak;
+                synthesizer.lang = selectedLanguage;
+
+                // Speak the text
+                speechSynthesis.speak(synthesizer);
+            }
+
+            function resetText() {
+                // Clear the input text
+                textToSpeechInput.value = '';
+            }
+        });
+    </script>
+</body>
+</html>
+
+
+
